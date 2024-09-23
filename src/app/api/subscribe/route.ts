@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { redis } from "@/lib/redis";
+// import { NextRequest, NextResponse } from "next/server";
+// import { redis } from "@/lib/redis";
 import { SubscriptionData } from "@/types";
 import { serve } from "@upstash/qstash/nextjs";
 
