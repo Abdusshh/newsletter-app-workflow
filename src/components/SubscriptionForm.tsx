@@ -20,6 +20,8 @@ export default function SubscriptionForm() {
     setIsError(false);
 
     const formData = new FormData(e.currentTarget);
+    console.log("here are the form data entries");
+    console.log(Object.fromEntries(formData.entries()));
     try {
     const response = await fetch("/api/subscribe", {
       method: "POST",
