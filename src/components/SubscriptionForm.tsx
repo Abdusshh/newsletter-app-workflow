@@ -36,6 +36,7 @@ export default function SubscriptionForm() {
         setMessage(result.message || "Subscription successful!");
       }
     } catch (error) {
+      console.error("An unexpected error occurred:", error);
       setIsError(true);
       setMessage("An unexpected error occurred.");
     }
