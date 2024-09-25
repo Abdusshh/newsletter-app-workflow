@@ -6,11 +6,8 @@ import { SubscriptionData } from "@/types";
 // Define the main POST function
 export const POST = async (request: NextRequest) => {
   try {
-    // get form data from the request body
-    const formData = await request.formData();
-    const email = formData.get("email") as string;
-    const freq = formData.get("frequency") as string;
-    const customFrequency = formData.get("customFrequency") as string;
+    // get body data from the request body
+    const { email, frequency: freq, customFrequency } = await request.json();
 
     console.log("Email:", email);
     console.log("Frequency:", freq);

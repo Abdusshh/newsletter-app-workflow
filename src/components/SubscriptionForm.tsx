@@ -21,10 +21,13 @@ export default function SubscriptionForm() {
 
     const formData = new FormData(e.currentTarget);
     try {
-      const response = await fetch("/api/subscribe", {
-        method: "POST",
-        body: formData,
-      });
+    const response = await fetch("/api/subscribe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(Object.fromEntries(formData.entries())),
+    });
 
       const result = await response.json();
 
