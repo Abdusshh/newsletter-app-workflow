@@ -7,12 +7,17 @@ export const redis = new Redis({
 
 export async function getUserFrequency(email: string): Promise<number | null> {
   const data = await redis.get(`user:${email}`);
+  console.log("User data:", data);
   if (!data) return null;
 
-  const parsed = JSON.parse(data as string);
+  const parsed = JSON.parse(JSON.stringify(data));
   return parsed.frequency;
 }
 
 export async function removeUser(email: string): Promise<void> {
   await redis.del(`user:${email}`);
+}
+
+export async function checkSubscription(email: string): Promise<boolean> {
+  return (await getUserFrequency(email)) !== null;
 }
