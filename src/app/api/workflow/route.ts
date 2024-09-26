@@ -1,6 +1,6 @@
 // src/app/api/workflow/route.ts
 import { serve } from "@upstash/qstash/nextjs";
-import { redis, checkSubscription, getUserFrequency } from "@/lib/redis";
+import { redis, checkSubscription } from "@/lib/redis";
 import { sendEmail } from "@/lib/email";
 import { SubscriptionData } from "@/types";
 
