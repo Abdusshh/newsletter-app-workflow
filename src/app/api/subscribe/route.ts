@@ -66,8 +66,9 @@ export const POST = async (request: NextRequest) => {
 
     console.log("Subscription successful!");
 
+    console.log("Enqueue the workflow");
     // Enqueue the workflow
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/workflow`, {
+    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/workflow`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.QSTASH_TOKEN}`,
