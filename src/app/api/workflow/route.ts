@@ -59,13 +59,14 @@ export const POST = serve<SubscriptionData>(async (context) => {
       console.log("Sending newsletter email to", email);
       await sendEmail(
         `
-Here is your newsletter!
-You are receiving this email because you subscribed to Upstash Newsletter.
-You can unsubscribe anytime by clicking the link below.
-You have ${newsletterCount} newsletters left.
-<LINK TO UNSUBSCRIBE>
-`,
-        email
+      Here is your newsletter!
+      You are receiving this email because you subscribed to Upstash Newsletter.
+      You can unsubscribe anytime by clicking the link below.
+      You have ${newsletterCount} newsletters left.
+      
+      <a href="https://your-app.vercel.app/unsubscribe?email=${email}">Unsubscribe here</a>
+      `,
+        email      
       );
     });
 
