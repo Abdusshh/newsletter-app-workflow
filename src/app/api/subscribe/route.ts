@@ -78,6 +78,16 @@ export const POST = async (request: NextRequest) => {
         email: email,
         frequency: frequencyNumber,
       }),
+    })
+    .then((response) => {
+      if (!response.ok) {
+        console.error("Failed to enqueue workflow:", response.statusText);
+      } else {
+        console.log("Workflow enqueued successfully");
+      }
+    })
+    .catch((error) => {
+      console.error("Error enqueuing workflow:", error);
     });
 
     // Return success response after handler execution
