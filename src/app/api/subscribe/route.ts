@@ -68,7 +68,7 @@ export const POST = async (request: NextRequest) => {
 
     console.log("Enqueue the workflow");
     // Enqueue the workflow
-    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/workflow`, {
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/workflow`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.QSTASH_TOKEN}`,
@@ -82,12 +82,14 @@ export const POST = async (request: NextRequest) => {
     .then((response) => {
       if (!response.ok) {
         console.error("Failed to enqueue workflow:", response.statusText);
+        return NextResponse.json({ error: "Failed to enqueue workflow." }, { status: 500 });
       } else {
         console.log("Workflow enqueued successfully");
       }
     })
     .catch((error) => {
       console.error("Error enqueuing workflow:", error);
+      return NextResponse.json({ error: "Error enqueuing workflow." }, { status: 500 });
     });
 
     // Return success response after handler execution
