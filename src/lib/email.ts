@@ -1,6 +1,6 @@
 // Function for sending email
 export async function sendEmail(message: string, email: string) {
-    console.log(`Sending ${message} email to ${email}`);
+    console.log(`Sending email to ${email}`);
     const url = process.env.EMAIL_SERVICE_URL;
     const payload = {
       to_email: email,

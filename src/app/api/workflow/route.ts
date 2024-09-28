@@ -1,6 +1,6 @@
 // src/app/api/workflow/route.ts
 import { serve } from "@upstash/qstash/nextjs";
-import { redis, checkSubscription } from "@/lib/redis";
+import { redis, checkSubscription, getUserFrequency } from "@/lib/redis";
 import { sendEmail } from "@/lib/email";
 import { SubscriptionData } from "@/types";
 
@@ -22,8 +22,13 @@ export const POST = serve<SubscriptionData>(async (context) => {
     await sendEmail("Welcome to Upstash Newsletter!", email);
   });
 
-  // We'll send at most 5 newsletters so that we don't run the workflow forever
-  let newsletterCount = 5; // Number of newsletters to send
+  // We'll send at most 3 newsletters so that we don't run the workflow forever in this example
+  let newsletterCount = 3; 
+  const blogPosts = [
+    "https://upstash.com/blog/workflow-kafka", 
+    "https://upstash.com/blog/qstash-fifo-parallelism",
+    "https://upstash.com/blog/introducing-vector-database",
+  ];
 
   while (true) {
     // Check if we have sent enough newsletters
@@ -34,10 +39,21 @@ export const POST = serve<SubscriptionData>(async (context) => {
       break;
     }
 
+    // Get user's current frequency
+    const currentFrequency = await context.run("get-user-frequency", async () => {
+      console.log("Getting user's frequency");
+      return await getUserFrequency(email);
+    });
+
+    if (!currentFrequency) {
+      console.log("User is not subscribed anymore. Stopping the workflow.");
+      break;
+    }
+
     // Wait for the frequency to send the next email
     await context.sleep(
       "wait-for-user-frequency",
-      60 * 60 * 24 * Number(frequency) // Convert days to seconds
+      60 * 60 * 24 * currentFrequency // Convert days to seconds
     );
 
     // Check if the user is still subscribed
@@ -59,13 +75,16 @@ export const POST = serve<SubscriptionData>(async (context) => {
       console.log("Sending newsletter email to", email);
       await sendEmail(
         `
-Here is your newsletter!
-You are receiving this email because you subscribed to Upstash Newsletter.
-You can unsubscribe anytime by clicking the link below.
-You have ${newsletterCount} newsletters left.
-<LINK TO UNSUBSCRIBE>
-`,
-        email
+      You can read our latest blog posts: ${blogPosts[newsletterCount - 1]}
+
+      You are receiving this email because you subscribed to Upstash Newsletter.
+
+      You can unsubscribe anytime by clicking the link below.
+      You have ${newsletterCount} newsletters left.
+      
+      <a href="https://your-app.vercel.app/unsubscribe?email=${email}">Unsubscribe here</a>
+      `,
+        email      
       );
     });
 
