@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const UnsubscribeForm = () => {
@@ -74,4 +74,11 @@ const UnsubscribeForm = () => {
   );
 };
 
-export default UnsubscribeForm;
+// Wrapping the form component in Suspense
+const UnsubscribePage = () => (
+  <Suspense fallback={<div>Loading...</div>}>
+    <UnsubscribeForm />
+  </Suspense>
+);
+
+export default UnsubscribePage;
