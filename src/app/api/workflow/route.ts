@@ -53,7 +53,7 @@ export const POST = serve<SubscriptionData>(async (context) => {
     // Wait for the frequency to send the next email
     await context.sleep(
       "wait-for-user-frequency",
-      60 * currentFrequency // Convert days to seconds
+      60 *  currentFrequency // Convert days to seconds
     );
 
     // Check if the user is still subscribed
@@ -75,14 +75,14 @@ export const POST = serve<SubscriptionData>(async (context) => {
       console.log("Sending newsletter email to", email);
       await sendEmail(
         `
-      You can read our latest blog posts: ${blogPosts[newsletterCount - 1]}
+You can read our latest blog posts: ${blogPosts[newsletterCount - 1]}
 
-      You are receiving this email because you subscribed to Upstash Newsletter.
+You are receiving this email because you subscribed to Upstash Newsletter.
 
-      You can unsubscribe anytime by clicking the link below.
-      You have ${newsletterCount} newsletters left.
+You can unsubscribe anytime by clicking the link below.
+You have ${newsletterCount} newsletters left.
       
-      <a href="https://your-app.vercel.app/unsubscribe?email=${email}">Unsubscribe here</a>
+Unsubscribe here: ${process.env.NEXT_PUBLIC_BASE_URL}api/unsubscribe?email=${email}
       `,
         email      
       );
