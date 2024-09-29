@@ -53,7 +53,7 @@ export const POST = serve<SubscriptionData>(async (context) => {
     // Wait for the frequency to send the next email
     await context.sleep(
       "wait-for-user-frequency",
-      60 * 60 * 24 * currentFrequency // Convert days to seconds
+      60 *  currentFrequency // Convert days to seconds
     );
 
     // Check if the user is still subscribed
