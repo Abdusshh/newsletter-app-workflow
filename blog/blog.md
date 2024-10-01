@@ -5,11 +5,20 @@ authors: [abdullahenes]
 tags: [nextjs, workflow, redis]
 ---
 
-In this blog post, we'll walk through building a custom newsletter application using **Upstash Workflow**, and **Upstash Redis**. Users can subscribe to a newsletter by providing their email and selecting their preferred frequency—daily, weekly, monthly, or a custom number of days. They can also unsubscribe at any time. We'll leverage Upstash Workflow to handle asynchronous email sending without worrying about serverless function timeouts.
+In this blog post, we'll walk through building a custom newsletter application using **Upstash Workflow** and **Upstash Redis**. Users can subscribe to a newsletter by providing their email and selecting their preferred frequency—daily, weekly, monthly, or a custom number of days. They can also unsubscribe at any time. We'll leverage Upstash Workflow to handle asynchronous email sending without worrying about serverless function timeouts.
 
 ## Motivation
 
-Dealing with long-running tasks in serverless environments can be challenging. Functions are typically limited to a few seconds, which can be insufficient for tasks like email scheduling. Upstash Workflow simplifies this process by allowing you to create persistent workflows that can run for extended periods without timing out. This makes it ideal for managing tasks like email scheduling, subscription management, and more.
+Dealing with long-running tasks in serverless environments can be challenging. Functions are typically limited to a few seconds, which can be insufficient for tasks like email scheduling. This limitation often leads developers to implement complex workarounds or abandon serverless solutions altogether. Upstash Workflow addresses these issues by allowing you to create persistent workflows that can run for extended periods without timing out.
+
+Here are some key advantages of using Upstash Workflow:
+
+- **No more serverless function timeouts**: Your workflows can run as long as needed without being constrained by serverless execution limits.
+- **Automatic recovery**: If a workflow fails mid-execution, it automatically recovers, ensuring your processes continue smoothly.
+- **Automatic retries**: When your service is temporarily unavailable, workflows automatically retry operations, enhancing reliability.
+- **Real-time monitoring**: Easily monitor system activity in real-time, giving you better insights and control over your application's performance.
+
+These features make Upstash Workflow ideal for managing tasks like email scheduling, subscription management, and more, simplifying your application's architecture and improving its reliability.
 
 ### Prerequisites
 
@@ -60,7 +69,7 @@ NEXT_PUBLIC_BASE_URL=
 - **EMAIL_SERVICE_URL**: The endpoint of your email sending API.
 - **NEXT_PUBLIC_BASE_URL**: The base URL of your deployed application (e.g., `https://your-app.vercel.app`).
 
-You can also set `UPSTASH_WORKFLOW_URL` variable in your `.env` file for local development with your ngrok URL. To learn more about how to develop workflows locally with ngrok, refer to the [Upstash Documentation](https://upstash.com/docs/qstash/workflow/howto/local-development).
+You can also set the `UPSTASH_WORKFLOW_URL` variable in your `.env` file for local development with your ngrok URL. To learn more about how to develop workflows locally with ngrok, refer to the [Upstash Documentation](https://upstash.com/docs/qstash/workflow/howto/local-development).
 
 <Note type="info">
 The `UPSTASH_WORKFLOW_URL` environment variable is only necessary for local development. In production, the `baseUrl` parameter is automatically set and can be omitted.
@@ -262,7 +271,7 @@ export default function UnsubscribePage() {
 
 **Key Points:**
 
-- **Pre-filled Email**: Automatically fills the email field if provided in the query parameters. (Especially useful for the unsubscribe link in emails.)
+- **Pre-filled Email**: Automatically fills the email field if provided in the query parameters (especially useful for the unsubscribe link in emails).
 - **Form Submission**: Sends a POST request to `/api/unsubscribe`.
 - **User Feedback**: Displays success or error messages.
 
@@ -533,7 +542,7 @@ When a user subscribes, a workflow is initiated to send newsletters based on the
 
 1. Store the user's subscription data in Redis.
 2. Send a welcome email to the user.
-3. Initiate a loop and in the loop:
+3. Initiate a loop, and in the loop:
     - Get the user's current frequency to determine when to send the next email.
     - Wait for the frequency duration.
     - Check if the user is still subscribed.
@@ -618,7 +627,7 @@ You are receiving this email because you subscribed to Upstash Newsletter.
 
 You can unsubscribe anytime by clicking the link below.
 You have ${newsletterCount} newsletters left.
-      
+        
 Unsubscribe here: ${process.env.NEXT_PUBLIC_BASE_URL}/unsubscribe?email=${email}
         `,
         email
@@ -639,11 +648,11 @@ Unsubscribe here: ${process.env.NEXT_PUBLIC_BASE_URL}/unsubscribe?email=${email}
 - **Loop Control**: Limits the number of newsletters sent to avoid infinite loops.
 - **Dynamic Content**: Includes links to blog posts in the emails.
 
-Here is an example of a completed workflow of an user who subscribed, received a newsletter, and unsubscribed:
+Here is an example of a completed workflow of a user who subscribed, received a newsletter, and unsubscribed:
 
 ![Workflow Example](/blog/workflow-example.png)
 
-You can acccss your workflows from the [Upstash Console](https://console.upstash.com/).
+You can access your workflows from the [Upstash Console](https://console.upstash.com/).
 
 ## Main Page Component
 
@@ -705,11 +714,7 @@ export default function UnsubscribeHome() {
 
 We've successfully built a custom newsletter application using Next.js, Upstash Workflow, and Upstash Redis. This setup allows users to subscribe and unsubscribe, and handles email scheduling based on user preferences—all without worrying about serverless function timeouts.
 
-You can find the complete source code on [GitHub](https://github.com/Abdusshh/newsletter-app-workflow). Also feel free to check out the live demo [here](https://newsletter-app-workflow.vercel.app/).
-
-<Note type="danger">
-If you unsubscribe and subscribe back while the initial workflow is still alive and sleeping (i.e., waiting to send the next email), both workflows will continue to run due to the current simple design of the project. This is a bug, not a feature.
-</Note>
+You can find the complete source code on [GitHub](https://github.com/Abdusshh/newsletter-app-workflow). Also, feel free to check out the live demo [here](https://newsletter-app-workflow.vercel.app/).
 
 For more information on Upstash Workflow, you can check out the [Upstash Documentation](https://upstash.com/docs/qstash/workflow/getstarted).
 
