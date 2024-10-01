@@ -1,3 +1,7 @@
+![Workflow Example](/blog/workflow-example.png)
+
+This is a newsletter app to showcase the use of Upstash Workflow and Upstash Redis.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

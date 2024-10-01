@@ -15,7 +15,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Upstash Newsletter",
-  description: "A newsletter about Upstash",
+  description: "A project to showcase the capabilities of Upstash Workflow.",
 };
 
 export default function RootLayout({
