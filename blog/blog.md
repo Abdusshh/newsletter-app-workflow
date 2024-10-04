@@ -1,42 +1,42 @@
 ---
-title: "Building a Custom Newsletter App with Upstash Workflow and Redis"
+title: "Building a Newsletter App with Upstash Workflow and Redis"
 slug: newsletter-workflow-redis-nextjs
 authors: [abdullahenes]
 tags: [nextjs, workflow, redis]
 ---
 
-In this blog post, we'll walk through building a custom newsletter application using **Upstash Workflow** and **Upstash Redis**. Users can subscribe to a newsletter by providing their email and selecting their preferred frequency—daily, weekly, monthly, or a custom number of days. They can also unsubscribe at any time. We'll leverage Upstash Workflow to handle asynchronous email sending without worrying about serverless function timeouts.
+In this blog, we will build a newsletter app where users will be able to subscribe and select how often they want to recieve their newsletters. We will use **Upstash Redis** to store the subscription data and **Upstash Workflow** to manage the actions of storing data, sending welcome emails, and scheduling newsletters based on the user's preferences.
 
 ## Motivation
 
-Dealing with long-running tasks in serverless environments can be challenging. Functions are typically limited to a few seconds, which can be insufficient for tasks like email scheduling. This limitation often leads developers to implement complex workarounds or abandon serverless solutions altogether. Upstash Workflow addresses these issues by allowing you to create persistent workflows that can run for extended periods without timing out.
+First of all, serverless environments are great! They are highly scalable and easy on the budget. However, they come with certain limitations, such as execution time limits. This can especially be problematic when you need to run long-running tasks.
 
-Here are some key advantages of using Upstash Workflow:
+That's where **Upstash Workflow** comes into play. With Upstash Workflow, you can create persistent workflows that can run as long as they need to. So, you don't have to worry about serverless function timeouts anymore.
 
-- **No more serverless function timeouts**: Your workflows can run as long as needed without being constrained by serverless execution limits.
-- **Automatic recovery**: If a workflow fails mid-execution, it automatically recovers, ensuring your processes continue smoothly.
-- **Automatic retries**: When your service is temporarily unavailable, workflows automatically retry operations, enhancing reliability.
-- **Real-time monitoring**: Easily monitor system activity in real-time, giving you better insights and control over your application's performance.
+Here is a list of features that you get when using Upstash Workflow:
 
-These features make Upstash Workflow ideal for managing tasks like email scheduling, subscription management, and more, simplifying your application's architecture and improving its reliability.
+- **No more serverless function timeouts**: Your workflows can run as long as they need to.
+- **Automatic recovery**: If something goes wrong and a workflow fails midway, it automatically recovers.
+- **Automatic retries**: If any step in the workflow fails, it will be retried automatically.
+- **Real-time monitoring**: You can monitor your workflows in real-time from the Upstash Console.
 
 ### Prerequisites
 
-- An Upstash account for Redis and QStash tokens.
 - Basic understanding of Next.js applications.
-- Optional: Vercel account for deployment.
-- Optional: ngrok for local development with Upstash Workflow.
+- An Upstash account for Redis and QStash tokens.
+- Vercel account for deployment.
+- ngrok (recommended) for local development.
 
 ## Project Setup
 
-We started by bootstrapping a new Next.js project using `create-next-app`:
+Let's start by bootstrapping a new Next.js project using `create-next-app`:
 
 ```bash
 npx create-next-app@latest --typescript newsletter-app
 cd newsletter-app
 ```
 
-This sets up a basic Next.js application with the necessary configuration. We then installed the required dependencies:
+Now, let's add the necessary dependencies to interact with Upstash QStash and Redis services:
 
 ```bash
 npm install @upstash/qstash @upstash/redis
@@ -44,17 +44,17 @@ npm install @upstash/qstash @upstash/redis
 
 ## Directory Structure
 
-Our directory structure will look like this:
+Before diving into the code, let's take a quick look at how we'll organize our project:
 
-- **`src/app/`**: Contains the main application components and pages.
-- **`src/app/api/`**: Contains the API routes for subscription, unsubscription, and workflow.
-- **`src/components/`**: Contains the subscription and unsubscription form components.
-- **`src/lib/`**: Contains utility functions for Redis and email sending.
-- **`src/types/`**: Contains TypeScript type definitions.
+- **`src/app/`**: This is where our main application components and pages will live.
+- **`src/app/api/`**: We'll put our API routes here—for subscribing, unsubscribing, and handling workflows.
+- **`src/components/`**: This folder will contain our subscription and unsubscription form components.
+- **`src/lib/`**: Utility functions for Redis and email sending will go here.
+- **`src/types/`**: We'll keep our TypeScript type definitions in this directory.
 
 ## Environment Variables
 
-Create a `.env` file at the root of your project and add the following variables:
+We need to create a `.env` file at the root of our project and add the following:
 
 ```env
 QSTASH_TOKEN=
@@ -64,20 +64,22 @@ EMAIL_SERVICE_URL=
 NEXT_PUBLIC_BASE_URL=
 ```
 
-- **QSTASH_TOKEN**: Your Upstash QStash token.
-- **UPSTASH_REDIS_REST_URL** and **UPSTASH_REDIS_REST_TOKEN**: Your Upstash Redis credentials.
-- **EMAIL_SERVICE_URL**: The endpoint of your email sending API.
-- **NEXT_PUBLIC_BASE_URL**: The base URL of your deployed application (e.g., `https://your-app.vercel.app`).
+- **QSTASH_TOKEN**: Our Upstash QStash token accessed from the Upstash Console.
+- **UPSTASH_REDIS_REST_URL** and **UPSTASH_REDIS_REST_TOKEN**: Our Upstash Redis credentials accessed from the Upstash Console.
+- **EMAIL_SERVICE_URL**: The endpoint of our email sending API.
+- **NEXT_PUBLIC_BASE_URL**: The base URL of our deployed application (e.g., `https://your-app.vercel.app`).
 
-You can also set the `UPSTASH_WORKFLOW_URL` variable in your `.env` file for local development with your ngrok URL. To learn more about how to develop workflows locally with ngrok, refer to the [Upstash Documentation](https://upstash.com/docs/qstash/workflow/howto/local-development).
+We can also set the `UPSTASH_WORKFLOW_URL` variable in our `.env` file for local development with our ngrok URL. To learn more about how to develop workflows locally with ngrok, refer to the [Upstash Documentation](https://upstash.com/docs/qstash/workflow/howto/local-development).
 
 <Note type="info">
 The `UPSTASH_WORKFLOW_URL` environment variable is only necessary for local development. In production, the `baseUrl` parameter is automatically set and can be omitted.
 </Note>
 
-## Subscription Form Component
+## Project Implementation
 
-The `SubscriptionForm` component allows users to subscribe to the newsletter and select their preferred frequency.
+### Subscription Form Component
+
+The `SubscriptionForm` component allows users to enter their email and select how often they want to receive the newsletter. When the form is submitted, we send a POST request to `/api/subscribe` with the form data.
 
 ```tsx title="src/components/SubscriptionForm.tsx"
 "use client";
@@ -90,12 +92,14 @@ export default function SubscriptionForm() {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
+  // Handle frequency selection
   const handleFrequencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setFrequency(value);
     setShowCustomFrequency(value === "custom");
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage("");
@@ -128,6 +132,7 @@ export default function SubscriptionForm() {
     }
   };
 
+  // Render the form
   return (
     <form className="flex flex-col gap-4 text-gray-700" onSubmit={handleSubmit}>
       <input
@@ -173,15 +178,9 @@ export default function SubscriptionForm() {
 }
 ```
 
-**Key Points:**
+### Unsubscribe Form Component
 
-- **State Management**: Manages frequency selection and handles custom frequency input.
-- **Form Submission**: Sends a POST request to `/api/subscribe`.
-- **User Feedback**: Displays success or error messages based on the response.
-
-## Unsubscribe Form Component
-
-The `UnsubscribeForm` component allows users to unsubscribe from the newsletter.
+The `UnsubscribeForm` component allows users to enter their email to unsubscribe from the newsletter. When the form is submitted, we send a POST request to `/api/unsubscribe` with the email data. It also pre-fills the email field if the user clicked an unsubscribe link in one of the emails.
 
 ```tsx title="src/components/UnsubscribeForm.tsx"
 "use client";
@@ -203,6 +202,7 @@ const UnsubscribeForm = () => {
     }
   }, [searchParams]);
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
@@ -233,6 +233,7 @@ const UnsubscribeForm = () => {
     }
   };
 
+  // Render the form
   return (
     <form className="flex flex-col gap-4 text-gray-700" onSubmit={handleSubmit}>
       <input
@@ -269,17 +270,13 @@ export default function UnsubscribePage() {
 }
 ```
 
-**Key Points:**
+### Store Data in Redis
 
-- **Pre-filled Email**: Automatically fills the email field if provided in the query parameters (especially useful for the unsubscribe link in emails).
-- **Form Submission**: Sends a POST request to `/api/unsubscribe`.
-- **User Feedback**: Displays success or error messages.
+We'll use Upstash Redis to store user subscription data.
 
-## Redis Utility Functions
+In order to use Upsatsh Redis, we first need to set up a Redis database on Upstash Console and get our REST URL and token. For more information on this, you can check out the [Upstash Documentation](https://upstash.com/docs/redis/overall/getstarted).
 
-We use Upstash Redis to store and manage subscription data. We store the user's email and subscription frequency. We also provide helper functions to retrieve user data, remove users, and check if a user is subscribed.
-
-In order to use the Upstash Redis REST API, you need to create a Redis database on Upstash and obtain the REST URL and token. You can find more information on how to do this in the [Upstash Documentation](https://upstash.com/docs/redis/overall/getstarted).
+`redis.ts` will contain our Redis client and helper functions for interacting with Redis:
 
 ```typescript title="src/lib/redis.ts"
 import { Redis } from "@upstash/redis";
@@ -307,17 +304,11 @@ export async function checkSubscription(email: string): Promise<boolean> {
 }
 ```
 
-**Key Points:**
+### Email Sending Function
 
-- **Redis Client**: Configured using environment variables.
-- **Helper Functions**:
-  - `getUserFrequency`: Retrieves a user's subscription frequency.
-  - `removeUser`: Deletes a user's subscription.
-  - `checkSubscription`: Checks if a user is subscribed.
+To send emails, we'll use our own email API that we developed in a previous blog post about creating an [Email Scheduler with QStash Python SDK](https://upstash.com/blog/email-scheduler-qstash-python).
 
-## Email Sending Function
-
-We created a custom function to send emails using our own email API that we developed in a separate blog post. To learn more about it, you can read our previous [Email Scheduler Blog](https://upstash.com/blog/email-scheduler-qstash-python).
+Here's the `email.ts` file:
 
 ```typescript title="src/lib/email.ts"
 export async function sendEmail(message: string, email: string) {
@@ -348,14 +339,9 @@ export async function sendEmail(message: string, email: string) {
 }
 ```
 
-**Key Points:**
+### Type Definitions
 
-- **Custom Email API**: Sends POST requests to a specified email service endpoint.
-- **Error Handling**: Logs errors if the email fails to send.
-
-## Type Definitions
-
-We defined TypeScript types for our subscription data.
+We also need a type definition for the subscription data:
 
 ```typescript title="src/types/index.ts"
 export type SubscriptionData = {
@@ -365,9 +351,11 @@ export type SubscriptionData = {
 };
 ```
 
-## Subscribe API Route
+### Subscribe API Route
 
-Handles subscription requests and initiates the workflow.
+We'll create an API route that handles subscription requests. When a user submits the subscription form, this endpoint will check if the user is already subscribed and enqueue a workflow to handle sending emails based on the user's chosen frequency.
+
+Here's the `/api/subscribe/route.ts` file:
 
 ```typescript title="src/app/api/subscribe/route.ts"
 import { NextRequest, NextResponse } from "next/server";
@@ -474,15 +462,11 @@ export const POST = async (request: NextRequest) => {
 };
 ```
 
-**Key Points:**
+### Unsubscribe API Route
 
-- **Validation**: Ensures email and frequency are provided and valid.
-- **Frequency Handling**: Converts frequency to a numerical value.
-- **Workflow Initiation**: Enqueues the workflow using Upstash QStash.
+Since we have a subscription route, we need an unsubscribe route as well. When a request is made, we'll check if the user is subscribed and remove their data from Redis. We'll also send a confirmation email.
 
-## Unsubscribe API Route
-
-Handles unsubscription requests and removes the user from Redis.
+Here's the `/api/unsubscribe/route.ts` file:
 
 ```typescript title="src/app/api/unsubscribe/route.ts"
 import { NextRequest, NextResponse } from "next/server";
@@ -528,27 +512,21 @@ export const POST = async (request: NextRequest) => {
 };
 ```
 
-**Key Points:**
+### Workflow API Route
 
-- **Validation**: Checks if the email is provided and exists in Redis.
-- **Unsubscription**: Deletes the user's data from Redis.
-- **Confirmation**: Sends an email confirming the unsubscription.
+Now, here's the fun part! We'll create an API route that handles the workflow for sending newsletters at the specified frequency intervals.
 
-## Workflow API Route
-
-This is the core of our application.
-
-When a user subscribes, a workflow is initiated to send newsletters based on the selected frequency. Here are the key steps:
+Our workflow will do the following:
 
 1. Store the user's subscription data in Redis.
-2. Send a welcome email to the user.
-3. Initiate a loop, and in the loop:
-    - Get the user's current frequency to determine when to send the next email.
-    - Wait for the frequency duration.
+2. Send a welcome email.
+3. Enter a loop:
+    - Wait for the specified frequency duration.
     - Check if the user is still subscribed.
-    - Send the newsletter email and repeat the loop until the desired number of newsletters is sent.
+    - Send the newsletter email.
+    - Repeat until a set number of newsletters have been sent since we don't want an infinite loop.
 
-We limit the number of newsletters sent in this project to ensure that the workflow stops after a certain number of emails.
+Here's the `/api/workflow/route.ts` file:
 
 ```typescript title="src/app/api/workflow/route.ts"
 import { serve } from "@upstash/qstash/nextjs";
@@ -641,22 +619,17 @@ Unsubscribe here: ${process.env.NEXT_PUBLIC_BASE_URL}/unsubscribe?email=${email}
 });
 ```
 
-**Key Points:**
-
-- **Persistent Workflow**: Uses Upstash Workflow to manage long-running tasks without worrying about function timeouts.
-- **Email Scheduling**: Sends emails based on the user's selected frequency.
-- **Loop Control**: Limits the number of newsletters sent to avoid infinite loops.
-- **Dynamic Content**: Includes links to blog posts in the emails.
-
-Here is an example of a completed workflow of a user who subscribed, received a newsletter, and unsubscribed:
+Here's an example of a completed workflow for a user who subscribed, received a single newsletter, and unsubscribed:
 
 ![Workflow Example](/blog/workflow-example.png)
 
-You can access your workflows from the [Upstash Console](https://console.upstash.com/).
+You can access and monitor your workflows from the [Upstash Console](https://console.upstash.com/).
 
-## Main Page Component
+### Main Page Component
 
-The main page where users can subscribe to the newsletter.
+Let's set up the main page of our application. This page will include the subscription form and a link to the unsubscribe page.
+
+Here's the `page.tsx` file:
 
 ```tsx title="src/app/page.tsx"
 import SubscriptionForm from "@/components/SubscriptionForm";
@@ -689,9 +662,11 @@ export default function Home() {
 }
 ```
 
-## Unsubscribe Page Component
+### Unsubscribe Page Component
 
-The page where users can unsubscribe.
+Finally, let's create the unsubscription page.
+
+Here's the `unsubscribe/page.tsx` file:
 
 ```tsx title="src/app/unsubscribe/page.tsx"
 import UnsubscribePage from "@/components/UnsubscribeForm";
@@ -712,10 +687,10 @@ export default function UnsubscribeHome() {
 
 ## Conclusion
 
-We've successfully built a custom newsletter application using Next.js, Upstash Workflow, and Upstash Redis. This setup allows users to subscribe and unsubscribe, and handles email scheduling based on user preferences—all without worrying about serverless function timeouts.
+And there you have it! We've built a simple newsletter app without worrying about serverless function timeouts.
 
-You can find the complete source code on [GitHub](https://github.com/Abdusshh/newsletter-app-workflow). Also, feel free to check out the live demo [here](https://newsletter-app-workflow.vercel.app/).
+You can find the complete source code for this project on [GitHub](https://github.com/Abdusshh/newsletter-app-workflow) and you can check out the live demo [here](https://newsletter-app-workflow.vercel.app/).
 
-For more information on Upstash Workflow, you can check out the [Upstash Documentation](https://upstash.com/docs/qstash/workflow/getstarted).
+For more information on Upstash Workflow, you can refer to the [Upstash Documentation](https://upstash.com/docs/qstash/workflow/getstarted).
 
-If you have any questions or need help, feel free to reach out to us on [Discord](https://upstash.com/discord). Also, check out the [Upstash Blog](https://upstash.com/blog) for more tutorials and use cases.
+If you have any questions, feel free to reach out to us on [Discord](https://upstash.com/discord). Also, don't forget to explore the [Upstash Blog](https://upstash.com/blog) for more tutorials and use cases.
